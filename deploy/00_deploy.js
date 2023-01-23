@@ -50,13 +50,21 @@ module.exports = async ({ deployments }) => {
     const chainId = network.config.chainId
     const tokenToBeMinted = networkConfig[chainId]["tokenToBeMinted"]
 
-    await deployLogError("Escrow", {
+    const lenderManager = await deployLogError("LenderManager", {
         from: deployer.address,
         args: [],
         // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
         maxPriorityFeePerGas: priorityFee,
         log: true,
     })
+
+    const currentTimestampInSeconds = Math.round(Date.now() / 1000)
+    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60
+    const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS
+
+    const amount = hre.ethers.utils.parseEther("0.01")
+
+    await lenderManager.createLendingPosition(unlockTime, 10, { value: amount })
 
     // await deployLogError("SimpleCoin", {
     //     from: deployer.address,
