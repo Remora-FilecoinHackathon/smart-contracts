@@ -1,3 +1,19 @@
+# HOW TO RUN THIS PROJECT
+
+```
+git clone https://github.com/Remora-FilecoinHackathon/smart-contracts/
+cd smart-contracts
+yarn install
+```
+
+Add your Metamask private key on your .env file.
+Fund your address with some tFIL here: https://hyperspace.yoga/#faucet
+
+To deploy the contracts on the Hyperspace testnet, run the following command:
+```
+yarn hardhat deploy --network hyperspace
+```
+
 # FEVM Hardhat Kit
 
 ## Cloning the Repo
