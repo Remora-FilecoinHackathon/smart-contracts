@@ -11,6 +11,7 @@ import {MinerAPI} from "@zondax/filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {MinerTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
 import {Actor} from "@zondax/filecoin-solidity/contracts/v0.8/utils/Actor.sol";
 import {Misc} from "@zondax/filecoin-solidity/contracts/v0.8/utils/Misc.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract LenderManager {
     event LenderPosition(
@@ -40,30 +41,33 @@ contract LenderManager {
     }
 
     struct LendingPosition {
+        uint256 id;
         address lender;
         uint256 availableAmount;
         uint256 endTimestamp;
         uint256 interestRate;
-        BorrowerOrders[] orders;
     }
+    using Counters for Counters.Counter;
+    Counters.Counter private _ordersForLendingCounter;
 
     LendingPosition[] public lendingPositions;
+    mapping(uint256 => BorrowerOrders[]) ordersForLending;
 
     constructor() {}
 
     function createLendingPosition(uint256 duration, uint256 loanInterestRate) public payable {
         require(msg.value > 0, "send some FIL to create a lending position");
         require(duration > block.timestamp, "duration must be greater than current timestamp");
-        BorrowerOrders[] memory orders;
         lendingPositions.push(
             LendingPosition(
+                _ordersForLendingCounter.current(),
                 msg.sender,
                 msg.value,
                 block.timestamp + duration,
-                loanInterestRate,
-                orders
+                loanInterestRate
             )
         );
+        _ordersForLendingCounter.increment();
         emit LenderPosition(msg.sender, msg.value, block.timestamp + duration, loanInterestRate);
     }
 
