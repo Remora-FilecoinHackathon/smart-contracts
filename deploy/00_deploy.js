@@ -30,7 +30,7 @@ async function callRpc(method, params) {
 const deployer = new ethers.Wallet(DEPLOYER_PRIVATE_KEY)
 
 module.exports = async ({ deployments }) => {
-    const { deploy } = deployments
+    const { deploy, execute, read } = deployments
 
     const priorityFee = await callRpc("eth_maxPriorityFeePerGas")
 
@@ -47,9 +47,6 @@ module.exports = async ({ deployments }) => {
     }
 
     console.log("Wallet Ethereum Address:", deployer.address)
-    const chainId = network.config.chainId
-    const tokenToBeMinted = networkConfig[chainId]["tokenToBeMinted"]
-
     const lenderManager = await deployLogError("LenderManager", {
         from: deployer.address,
         args: [],
@@ -62,31 +59,33 @@ module.exports = async ({ deployments }) => {
     const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60
     const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS
 
-    const amount = hre.ethers.utils.parseEther("0.01")
+    const amount = hre.ethers.utils.parseEther("0.002")
+    console.log("Calling createLendingPosition...")
+    await execute(
+        "LenderManager",
+        {
+            from: deployer.address,
+            maxPriorityFeePerGas: priorityFee,
+            value: amount,
+        },
+        "createLendingPosition",
+        unlockTime,
+        10
+    )
+    console.log("createLendingPosition finished executing.")
 
-    await lenderManager.createLendingPosition(unlockTime, 10, { value: amount })
-
-    // await deployLogError("SimpleCoin", {
-    //     from: deployer.address,
-    //     args: [tokenToBeMinted],
-    //     // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-    //     maxPriorityFeePerGas: priorityFee,
-    //     log: true,
-    // })
-
-    // await deployLogError("FilecoinMarketConsumer", {
-    //     from: deployer.address,
-    //     args: [],
-    //     // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-    //     maxPriorityFeePerGas: priorityFee,
-    //     log: true,
-    // })
-
-    // await deployLogError("DealRewarder", {
-    //     from: deployer.address,
-    //     args: [],
-    //     // maxPriorityFeePerGas to instruct hardhat to use EIP-1559 tx format
-    //     maxPriorityFeePerGas: priorityFee,
-    //     log: true,
-    // })
+    const MINER_ADDRESS =
+        "t3wj7cikpzptshfuwqleehoytar2wcvom42q6io7lopbl2yp2kb2yh3ymxovsd5ccrgm36ckeibzjl3s27pzuq"
+    console.log("Calling createBorrow...")
+    let tx = await execute(
+        "LenderManager",
+        {
+            from: deployer.address,
+            maxPriorityFeePerGas: priorityFee,
+            gasLimit: 10000000000,
+        },
+        "createBorrow",
+        ethers.utils.parseEther("0.001"),
+        ethers.utils.toUtf8Bytes(MINER_ADDRESS)
+    )
 }

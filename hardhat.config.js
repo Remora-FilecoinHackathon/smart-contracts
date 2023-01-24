@@ -14,6 +14,7 @@ module.exports = {
             chainId: 3141,
             url: "https://api.hyperspace.node.glif.io/rpc/v1",
             accounts: [PRIVATE_KEY],
+            timeout: 4000000,
         },
     },
     paths: {
