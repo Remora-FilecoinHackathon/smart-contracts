@@ -76,7 +76,9 @@ contract LenderManager {
         require(checkReputation(msg.sender));
         require(amount <= address(this).balance);
 
-        Escrow escrow = (new Escrow)();
+        // Escrow escrow = (new Escrow)();
+        // (CREATE2) create Escrow. change owner and amount are placeholders. change them with Constructor params
+        Escrow escrow = new Escrow{salt: abi.encodePacked(uint40(block.timestamp))}(owner, amount);
         // set escrow as owner of the miner actor
         MinerAPI.changeOwnerAddress(
             abi.encodePacked(minerActorID),
