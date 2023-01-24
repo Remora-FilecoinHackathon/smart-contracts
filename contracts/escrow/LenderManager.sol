@@ -75,21 +75,14 @@ contract LenderManager {
     }
 
     function createBorrow(uint256 amount, bytes memory minerActorAddress) public {
-        // require(checkIsOwner(msg.sender, minerActorAddress));
-        // require(checkReputation(msg.sender));
-        // require(amount <= address(this).balance, "Balance is low");
+        require(checkIsOwner(msg.sender, minerActorAddress));
+        require(checkReputation(msg.sender));
+        require(amount <= address(this).balance, "Balance is low");
 
-<<<<<<< HEAD
-        // MinerTypes.GetOwnerReturn memory getOwnerReturnValue = MinerAPI.getOwner(minerActorAddress);
-
-        // Escrow escrow = (new Escrow)();
-=======
-        // Escrow escrow = (new Escrow)();
         // (CREATE2) create Escrow. change owner and amount are placeholders. change them with Constructor params
         Escrow escrow = new Escrow{salt: abi.encodePacked(uint40(block.timestamp))}(owner, amount);
->>>>>>> bc739c2073e63c336e91a23501796bdf526aceae
         // set escrow as owner of the miner actor
-        // MinerAPI.changeOwnerAddress(minerActorAddress, abi.encodePacked(address(escrow)));
+        MinerAPI.changeOwnerAddress(minerActorAddress, abi.encodePacked(address(escrow)));
         // TODO check if another request to effectively change the owner is needed
         //send FIL to miner actor
         SendAPI.send(minerActorAddress, amount);
