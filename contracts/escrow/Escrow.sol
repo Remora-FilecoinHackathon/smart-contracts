@@ -19,6 +19,16 @@ contract Escrow is IEscrow {
     uint256 public lastWithdraw;
     uint256 public withdrawInterval;
 
+    modifier onlyLender {
+        require(msg.sender == lender);
+        _;
+    }
+
+    modifier onlyBorrower {
+        require(msg.sender == borrower);
+        _;
+    }
+
     constructor(
         address _lender,
         address _borrower,
@@ -68,7 +78,7 @@ contract Escrow is IEscrow {
         return lastWithdraw == 0 ? 0 : (lastWithdraw + withdrawInterval);
     }
 
-    function repay() external {
+    function repay() onlyBorrower external {
         require(block.timestamp >= nextWithdraw(), "Too early");
         lastWithdraw = block.timestamp;
         if (address(this).balance >= rateAmount) {
@@ -80,8 +90,7 @@ contract Escrow is IEscrow {
         }
     }
 
-    function withdrawBeforLoanStarts() external {
-        require(msg.sender == lender);
+    function withdrawBeforLoanStarts() onlyLender external {
         require(!started);
         //TODO transfer $fil to lender
         emit ClosedLoan(block.timestamp, address(this).balance);
