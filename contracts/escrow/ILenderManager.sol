@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
+
 contract ILenderManager {
     event LenderPosition(
         address lender,
@@ -19,6 +20,8 @@ contract ILenderManager {
         bytes minerActor
     );
 
+    event CheckReputation(address borrower);
+
     struct BorrowerOrders {
         address borrower;
         uint256 loanAmount;
@@ -34,4 +37,3 @@ contract ILenderManager {
         uint256 interestRate;
     }
 }
-
