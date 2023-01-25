@@ -6,6 +6,7 @@ pragma solidity ^0.8.17;
  */
 
 // import "hardhat/console.sol";
+import "./ILenderManager.sol";
 import "./Escrow.sol";
 import {MinerAPI} from "@zondax/filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {MinerTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
@@ -15,81 +16,49 @@ import "@zondax/filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
 // import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract LenderManager {
-    event LenderPosition(
-        address lender,
-        uint256 amount,
-        uint256 endTimestamp,
-        uint256 interestRate
-    );
+contract LenderManager is ILenderManager{
 
-    event BorrowOrder(
-        address escrow,
-        uint256 loanAmount,
-        uint256 lenderAmountAvailable,
-        uint256 startBlock,
-        uint256 amountToPay,
-        address escrowContract,
-        uint256 orderID
-    );
-
-    struct BorrowerOrders {
-        uint256 id;
-        address borrower;
-        uint256 loanAmount;
-        uint256 startBlock; // when the loan starts
-        uint256 amountToPayEveryBlock;
-        address escrow;
-    }
-
-    struct LendingPosition {
-        uint256 id;
-        address lender;
-        uint256 availableAmount;
-        uint256 endTimestamp;
-        uint256 interestRate;
-    }
-    // using Counters for Counters.Counter;
-    // Counters.Counter private _ordersForLendingCounter;
-
-    LendingPosition[] public lendingPositions;
+    mapping (uint256 => LendingPosition) positions;
     mapping(uint256 => BorrowerOrders[]) ordersForLending;
+    mapping(uint256 => address[]) escrowContracts;
 
     constructor() {}
 
     function createLendingPosition(uint256 duration, uint256 loanInterestRate) public payable {
         require(msg.value > 0, "send some FIL to create a lending position");
         require(duration > block.timestamp, "duration must be greater than current timestamp");
-        lendingPositions.push(
-            LendingPosition(
-                // _ordersForLendingCounter.current(),
-                0,
-                msg.sender,
-                msg.value,
-                block.timestamp + duration,
-                loanInterestRate
-            )
+        uint256 key = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, blockhash(block.number - 1))));
+        positions[key] = LendingPosition(
+            msg.sender,
+            msg.value,
+            duration,
+            loanInterestRate
         );
-        // _ordersForLendingCounter.increment();
-        emit LenderPosition(msg.sender, msg.value, block.timestamp + duration, loanInterestRate);
+        emit LenderPosition(msg.sender, msg.value, key, duration, loanInterestRate);
     }
 
-    function createBorrow(uint256 amount, bytes memory minerActorAddress) public {
-        require(checkIsOwner(msg.sender, minerActorAddress));
-        require(checkReputation(msg.sender));
-        require(amount <= address(this).balance, "Balance is low");
-
+    function createBorrow(uint256 loanKey, uint256 amount, bytes memory minerActorAddress) public {
+        //TODO check on loanKey
+        //TODO require(checkIsOwner(msg.sender, minerActorAddress));
+        require(checkReputation(minerActorAddress));
+        require(amount <= positions[loanKey].availableAmount && block.timestamp < positions[loanKey].endTimestamp, "Lending position not available");
         // (CREATE2) create Escrow. change owner and amount are placeholders. change them with Constructor params
-        Escrow escrow = new Escrow{salt: abi.encodePacked(uint40(block.timestamp))}(owner, amount);
-        // set escrow as owner of the miner actor
-        MinerAPI.changeOwnerAddress(minerActorAddress, abi.encodePacked(address(escrow)));
-        // TODO check if another request to effectively change the owner is needed
+        address escrow = address(new Escrow{salt: bytes32(abi.encodePacked(uint40(block.timestamp)))}(positions[loanKey].lender, msg.sender, minerActorAddress, amount,positions[loanKey].endTimestamp ));
+        escrowContracts[loanKey].push(payable(escrow));
         //send FIL to miner actor
-        SendAPI.send(minerActorAddress, amount);
-        // TODO update the Lending Manager position and amount of available FIL to borrow
+        SendAPI.send(abi.encodePacked(escrow), amount);
+        // update LendingPosition
+        positions[loanKey].availableAmount -= amount;
+        // update BorrowerOrders
+        ordersForLending[loanKey].push(BorrowerOrders(
+            msg.sender,
+            amount,
+            block.timestamp,
+            calculateInterest(), //TODO
+            escrow
+        ));
+        emit BorrowOrder(escrow, amount, positions[loanKey].availableAmount, block.timestamp, calculateInterest(),loanKey, minerActorAddress);
     }
-
-    function clone() private {}
 
     function checkIsOwner(address borrower, bytes memory minerActorAddress) public returns (bool) {
         // TODO convert msg.sender to Filecoin address form or viceversa in order to compare them
@@ -98,7 +67,11 @@ contract LenderManager {
         return true;
     }
 
-    function checkReputation(address borrower) private returns (bool) {
+    function checkReputation(bytes memory minerActor) private pure returns (bool) {
         return true;
+    }
+
+    //TODO
+    function calculateInterest() internal view returns (uint256 amount) {
     }
 }
