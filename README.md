@@ -1,13 +1,36 @@
-# Sample Hardhat Project
+# Project Setup
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
-
-Try running some of the following tasks:
+Run the following command to setup the project:
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
+git clone https://github.com/Remora-FilecoinHackathon/smart-contracts
+cd smart-contracts
+npm i
+touch .env
+```
+Insert your Private Key inside the .env file, inside a variable called PRIVATE_KEY
+(See here for tutorial on how to export private key from metamask: https://metamask.zendesk.com/hc/en-us/articles/360015289632-How-to-export-an-account-s-private-key)
+
+```properties
+PRIVATE_KEY=<private_key_exported>
+```
+
+Fund the address related with the private key here: https://hyperspace.yoga/#faucet
+
+Inside the root directory, run the following command:
+
+```shell
 npx hardhat run scripts/deploy.ts
 ```
+
+You should see the following output
+
+
+<kbd>
+<img width="870" alt="Screenshot 2023-01-26 alle 17 47 59" src="https://user-images.githubusercontent.com/56132403/214896991-330bcf0b-1055-4b2a-8e60-e0e0d760527a.png">
+</kbd>
+
+## TODO
+- Finish implementing the Escrow contract
+- Check why Zondax API does not work
+- Write automated tests inside "test" directory (https://hardhat.org/tutorial/testing-contracts)
