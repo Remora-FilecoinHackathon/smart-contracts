@@ -20,8 +20,20 @@ contract LenderManager is ILenderManager {
     mapping(uint256 => LendingPosition) positions;
     mapping(uint256 => BorrowerOrders[]) ordersForLending;
     mapping(uint256 => address[]) escrowContracts;
+    mapping(uint256 => bytes) reputationRequest;
+    mapping(bytes => uint256) reputationResponse;
 
-    constructor() {}
+    uint256 public currentId;
+    address public oracle;
+
+    constructor(address _oracle) {
+        oracle = _oracle;
+    }
+
+    modifier onlyOracle {
+        require(msg.sender == oracle);
+        _;
+    }
 
     function createLendingPosition(uint256 duration, uint256 loanInterestRate) public payable {
         require(msg.value > 0, "send some FIL to create a lending position");
@@ -38,21 +50,23 @@ contract LenderManager is ILenderManager {
         uint256 amount,
         bytes memory minerActorAddress
     ) public {
-        //TODO check on loanKey
-        //TODO require(checkIsOwner(msg.sender, minerActorAddress));
-        // require(checkReputation(minerActorAddress));
+        require(positions[loanKey].lender != address(0));
+        require(checkIsOwner(msg.sender, minerActorAddress));
         require(
             amount <= positions[loanKey].availableAmount &&
                 block.timestamp < positions[loanKey].endTimestamp,
             "Lending position not available"
         );
+        require(reputationResponse[minerActorAddress] == 2, "bad reputation");
         // (CREATE2) create Escrow. change owner and amount are placeholders. change them with Constructor params
+        uint256 rate = calculateInterest(amount, positions[loanKey].interestRate);
         address escrow = address(
             new Escrow{salt: bytes32(abi.encodePacked(uint40(block.timestamp)))}(
                 positions[loanKey].lender,
                 msg.sender,
                 minerActorAddress,
                 amount,
+                rate,
                 positions[loanKey].endTimestamp
             )
         );
@@ -67,7 +81,7 @@ contract LenderManager is ILenderManager {
                 msg.sender,
                 amount,
                 block.timestamp,
-                calculateInterest(), //TODO
+                rate, 
                 escrow
             )
         );
@@ -76,29 +90,40 @@ contract LenderManager is ILenderManager {
             amount,
             positions[loanKey].availableAmount,
             block.timestamp,
-            calculateInterest(),
+            rate,
             loanKey,
             minerActorAddress
         );
     }
 
     function checkIsOwner(address borrower, bytes memory minerActorAddress) public returns (bool) {
-        // TODO convert msg.sender to Filecoin address form or viceversa in order to compare them
-        // MinerTypes.GetOwnerReturn memory getOwnerReturnValue = MinerAPI.getOwner(minerActorID);
-        // return msg.sender == getOwnerReturnValue.owner
-        return true;
+        return MinerAPI.isControllingAddress(minerActorAddress, abi.encodePacked(borrower)).is_controlling;
     }
 
-    // function checkReputation(bytes memory minerActor ) public
-    function checkReputation() public {
-        // requestId => borrower
-        emit CheckReputation(msg.sender);
+    function checkReputation(bytes memory minerActorAddress) public {
+        uint256 Id = currentId;
+        reputationRequest[Id] = minerActorAddress;
+        incrementId();
+        emit CheckReputation(Id, minerActorAddress);
     }
 
-    // function receiveReputationScore(uint requestId, bytes memory response) external onlyOracle {
+    function receiveReputationScore(uint requestId, uint256 response) external onlyOracle {
+        bytes memory miner = reputationRequest[requestId];
+        reputationResponse[miner] = response;
+        // response: 0 false variable default, 1 response false, 2 response true
+    }
+    function calculateInterest(uint256 amount, uint256 bps) public pure returns (uint256) {
+        require((amount * bps) >= 10_000);
+         ((amount * bps) / 10_000);
+         // using 833 bps returns the monthly rate to pay
+        return calculatePeriodicaInterest(((amount * bps) / 10_000), 833);
+    }
+    function calculatePeriodicaInterest(uint256 amount, uint256 bps) internal pure returns (uint256) {
+        require((amount * bps) >= 10_000);
+        return ((amount * bps) / 10_000);
+    }
 
-    // }
-
-    //TODO
-    function calculateInterest() internal view returns (uint256 amount) {}
+    function incrementId() internal returns(uint256) {
+        return currentId += 1;
+    }
 }
