@@ -14,6 +14,7 @@ contract Escrow is IEscrow {
     address public lender;
     address public borrower;
     bytes public minerActor;
+    // delete this param
     uint256 public loanAmount;
     uint256 public rateAmount;
     uint256 public end;
@@ -21,6 +22,7 @@ contract Escrow is IEscrow {
     bool public canTerminate;
     uint256 public lastWithdraw;
     uint256 public withdrawInterval;
+    uint256 public loanPaidAmount;
 
     constructor(
         address _lender,
@@ -36,6 +38,8 @@ contract Escrow is IEscrow {
         loanAmount = _loanAmount;
         rateAmount = _rateAmount;
         end = _end;
+
+
     }
 
     receive() external payable {
@@ -92,10 +96,12 @@ contract Escrow is IEscrow {
 
     function repay() external {
         require(block.timestamp >= nextWithdraw(), "Too early");
+        require((loanAmount >= loanPaidAmount), "loan repaid");
         lastWithdraw = block.timestamp;
         if (address(this).balance >= rateAmount) {
             // transfer $fil to lender
             submit(lender, rateAmount, "");
+            loanPaidAmount += rateAmount;
             emit PaidRate(block.timestamp, rateAmount);
         } else {
             canTerminate = true;

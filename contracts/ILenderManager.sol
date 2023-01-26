@@ -13,6 +13,7 @@ interface ILenderManager {
     event BorrowOrder(
         address escrow,
         uint256 loanAmount,
+        uint256 amountToReapy,
         uint256 lenderAmountAvailable,
         uint256 startBlock,
         uint256 amountToPay,
@@ -20,11 +21,15 @@ interface ILenderManager {
         bytes minerActor
     );
 
-    event CheckReputation(uint256 requestId, bytes minerActor);
+    event CheckReputation(
+        uint256 requestId, 
+        bytes minerActor
+    );
 
     struct BorrowerOrders {
         address borrower;
         uint256 loanAmount;
+        uint256 amountToReapy,
         uint256 startBlock; // when the loan starts
         uint256 amountToPayEveryBlock;
         address escrow;

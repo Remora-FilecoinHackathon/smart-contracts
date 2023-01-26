@@ -84,7 +84,7 @@ contract LenderManager is ILenderManager {
             "Lending position not available"
         );
         //TODO require(reputationResponse[minerActorAddress] == MINER_REPUATION_GOOD, "bad reputation");
-        uint256 rate = calculateInterest(
+        (uint256 rate, uint256 amountToRepay) = calculateInterest(
             amount,
             positions[loanKey].interestRate
         );
@@ -94,7 +94,7 @@ contract LenderManager is ILenderManager {
             positions[loanKey].lender,
             msg.sender,
             minerActorAddress,
-            amount,
+            amountToRepay,
             rate,
             positions[loanKey].endTimestamp
         );
@@ -106,6 +106,7 @@ contract LenderManager is ILenderManager {
             BorrowerOrders(
                 msg.sender,
                 amount,
+                amountToRepay,
                 block.timestamp,
                 rate,
                 address(escrow)
@@ -114,6 +115,7 @@ contract LenderManager is ILenderManager {
         emit BorrowOrder(
             address(escrow),
             amount,
+            amountToRepay,
             positions[loanKey].availableAmount,
             block.timestamp,
             rate,
@@ -158,12 +160,13 @@ contract LenderManager is ILenderManager {
     function calculateInterest(uint256 amount, uint256 bps)
         public
         pure
-        returns (uint256)
+        returns (uint256, uint256)
     {
-        require((amount * bps) >= 10_000);
-        ((amount * bps) / 10_000);
+        uint256 computedAmount = amount * bps;
+        require(computedAmount >= 10_000);
+        (computedAmount / 10_000);
         // using 833 bps returns the monthly rate to pay
-        return calculatePeriodicaInterest(((amount * bps) / 10_000), 833);
+        return (calculatePeriodicaInterest(((computedAmount + amount) / 10_000), 833), ((computedAmount + amount)));
     }
 
     function calculatePeriodicaInterest(uint256 amount, uint256 bps)
