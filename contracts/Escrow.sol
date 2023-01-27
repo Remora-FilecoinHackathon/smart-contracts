@@ -21,7 +21,7 @@ contract Escrow is IEscrow {
     bool public started;
     bool public canTerminate;
     uint256 public lastWithdraw;
-    uint256 public withdrawInterval;
+    uint256 public constant withdrawInterval = 2592000;
     uint256 public loanPaidAmount;
 
     constructor(
