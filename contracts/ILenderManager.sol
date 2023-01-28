@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 interface ILenderManager {
     event LenderPosition(
-        address lender,
+        address indexed lender,
         uint256 amount,
         uint256 key,
         uint256 endTimestamp,
@@ -17,8 +17,8 @@ interface ILenderManager {
         uint256 lenderAmountAvailable,
         uint256 startBlock,
         uint256 amountToPay,
-        uint256 key,
-        bytes minerActor
+        uint256 indexed key,
+        bytes indexed minerActor
     );
 
     event CheckReputation(

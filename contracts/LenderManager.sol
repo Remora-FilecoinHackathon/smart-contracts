@@ -26,6 +26,7 @@ contract LenderManager is ILenderManager {
     uint256 constant MINER_REPUTATION_DEFAULT = 0;
     uint256 constant MINER_REPUTATION_BAD = 1;
     uint256 constant MINER_REPUTATION_GOOD = 2;
+    uint256 constant repayLoanInterval = 2592000;
 
     modifier onlyOracle() {
         require(msg.sender == oracle);
@@ -95,6 +96,7 @@ contract LenderManager is ILenderManager {
             minerActorAddress,
             amountToRepay,
             rate,
+            repayLoanInterval,
             positions[loanKey].endTimestamp
         );
         escrowContracts[loanKey].push(payable(address(escrow)));
@@ -122,7 +124,7 @@ contract LenderManager is ILenderManager {
             minerActorAddress
         );
     }
-
+    
     function isControllingAddress(bytes memory minerActorAddress)
         public
         returns (bool)

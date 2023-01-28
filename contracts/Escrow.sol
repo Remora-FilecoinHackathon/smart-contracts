@@ -19,7 +19,7 @@ contract Escrow is IEscrow {
     bool public started;
     bool public canTerminate;
     uint256 public lastWithdraw;
-    uint256 public constant withdrawInterval = 2592000;
+    uint256 public withdrawInterval;
     uint256 public loanPaidAmount;
     MinerTypes.WithdrawBalanceParams closeLoanParam;
 
@@ -29,6 +29,7 @@ contract Escrow is IEscrow {
         bytes memory _minerActor,
         uint256 _loanAmount,
         uint256 _rateAmount,
+        uint256 _withdrawInterval,
         uint256 _end
     ) {
         lender = _lender;
@@ -36,6 +37,7 @@ contract Escrow is IEscrow {
         minerActor = _minerActor;
         loanAmount = _loanAmount;
         rateAmount = _rateAmount;
+        withdrawInterval = _withdrawInterval;
         end = _end;
         closeLoanParam.amount_requested = abi.encodePacked(address(this).balance);
     }
