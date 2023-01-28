@@ -21,7 +21,7 @@ contract Escrow is IEscrow {
     bool public started;
     bool public canTerminate;
     uint256 public lastWithdraw;
-    uint256 public withdrawInterval;
+    uint256 public constant withdrawInterval = 2592000;
     uint256 public loanPaidAmount;
 
     constructor(
@@ -82,7 +82,6 @@ contract Escrow is IEscrow {
         SendAPI.send(minerActor, amount);
     }
 
-    // valutare se chiamarla noi o il lender
     function transferFromMinerActor(
         MinerTypes.WithdrawBalanceParams memory params
     ) external returns (MinerTypes.WithdrawBalanceReturn memory) {
@@ -118,24 +117,17 @@ contract Escrow is IEscrow {
         selfdestruct(lenderAddress);
     }
 
-    function closeLoan() external {
-        require(canTerminate);
-
-        //TODO add all the logic to get back the collateral from Miner Actor
-
-        // prendi il balance del miner actor
-        // transferFromMinerActor(params);
-
+    function closeLoan(MinerTypes.WithdrawBalanceParams memory params) external {
+        require(canTerminate || block.timestamp >= end);
+        MinerAPI.withdrawBalance(minerActor, params);
         // change the owner wallet setting the borrower as the new owner
         MinerAPI.changeOwnerAddress(minerActor, abi.encodePacked(borrower));
+        // TODO change beneficiary
+
         emit ClosedLoan(block.timestamp, address(this).balance);
         // selfdescruct and send $FIL back to the lender
         address payable lenderAddress = payable(address(lender));
         selfdestruct(lenderAddress);
-    }
-
-    function manageCollateral(uint256 amount) external {
-        //TODO
     }
 
     function submit(
