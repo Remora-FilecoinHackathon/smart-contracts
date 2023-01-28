@@ -29,7 +29,7 @@ interface ILenderManager {
     struct BorrowerOrders {
         address borrower;
         uint256 loanAmount;
-        uint256 amountToReapy,
+        uint256 amountToReapy;
         uint256 startBlock; // when the loan starts
         uint256 amountToPayEveryBlock;
         address escrow;
