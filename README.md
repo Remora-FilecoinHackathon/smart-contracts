@@ -30,6 +30,12 @@ You should see the following output
 <img width="870" alt="Screenshot 2023-01-26 alle 17 47 59" src="https://user-images.githubusercontent.com/56132403/214896991-330bcf0b-1055-4b2a-8e60-e0e0d760527a.png">
 </kbd>
 
+# Test
+To run the tests run the following command. Add tests to the test directory.
+```shell
+npx hardhat test --network hardhat
+```
+
 ## TODO
 - Finish implementing the Escrow contract
 - Check why Zondax API does not work
