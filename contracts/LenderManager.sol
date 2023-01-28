@@ -76,14 +76,13 @@ contract LenderManager is ILenderManager {
         bytes memory minerActorAddress
     ) public {
         require(positions[loanKey].lender != address(0));
-        //TODO require(isControllingAddress(minerActorAddress));
-        //TODO require(checkReputation(minerActorAddress));
+        // TODO delete this comment require(isControllingAddress(msg.sender));
         require(
             amount <= positions[loanKey].availableAmount &&
                 block.timestamp < positions[loanKey].endTimestamp,
             "Lending position not available"
         );
-        //TODO require(reputationResponse[minerActorAddress] == MINER_REPUATION_GOOD, "bad reputation");
+        //TODO delete this comment require(reputationResponse[minerActorAddress] == MINER_REPUATION_GOOD, "bad reputation");
         (uint256 rate, uint256 amountToRepay) = calculateInterest(
             amount,
             positions[loanKey].interestRate
