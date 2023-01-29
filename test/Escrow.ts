@@ -64,12 +64,12 @@ describe("Escrow Contract", function () {
             }
         );
 
-        return { lenderManager, ORACLE_ADDRESS, MINER_ADDRESS, owner, otherAccount };
+        return { lenderManager, escrow, ORACLE_ADDRESS, MINER_ADDRESS, owner, otherAccount };
     }
 
     describe("Deployments", function () {
         it("Should deploy to a valid address", async function () {
-            const { lenderManager } = await loadFixture(deployEscrowFixture);
+            const { escrow } = await loadFixture(deployEscrowFixture);
         })
     })
 })
