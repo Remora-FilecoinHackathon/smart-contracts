@@ -77,6 +77,7 @@ contract LenderManager is ILenderManager {
         bytes memory minerActorAddress
     ) public {
         require(positions[loanKey].lender != address(0));
+        require(msg.sender != positions[loanKey].lender);
         // TODO delete this comment require(isControllingAddress(msg.sender));
         require(
             amount <= positions[loanKey].availableAmount &&
