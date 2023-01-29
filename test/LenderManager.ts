@@ -83,38 +83,38 @@ describe("Lender Manager Contract", function () {
 
     describe("Create Borrow", function () {
         it("Should fail for an invalid loan key sent to the function", async function () {
-            const { lenderManager, MINER_ADDRESS } = await loadFixture(deployLenderManagerFixture);
+            const { lenderManager, MINER_ADDRESS, otherAccount } = await loadFixture(deployLenderManagerFixture);
 
             const tx = await lenderManager.createLendingPosition(unlockTime, 10, {value: amount});
             await tx.wait();
 
-            await expect(lenderManager.createBorrow(0, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
+            await expect(lenderManager.connect(otherAccount).createBorrow(0, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
         })
 
         it("Should fail for an invalid amount sent to the function", async function () {
-            const { lenderManager, MINER_ADDRESS } = await loadFixture(deployLenderManagerFixture);
+            const { lenderManager, MINER_ADDRESS, otherAccount } = await loadFixture(deployLenderManagerFixture);
 
             const tx = await lenderManager.createLendingPosition(unlockTime, 10, {value: amount});
             await tx.wait();
 
             let key = await lenderManager.loanKeys(0);
 
-            await expect(lenderManager.createBorrow(key, ethers.utils.parseEther("0.003"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWith("Lending position not available");
+            await expect(lenderManager.connect(otherAccount).createBorrow(key, ethers.utils.parseEther("0.003"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWith("Lending position not available");
         })
 
         it("Should fail for zero amount sent to the function", async function () {
-            const { lenderManager, MINER_ADDRESS } = await loadFixture(deployLenderManagerFixture);
+            const { lenderManager, MINER_ADDRESS, otherAccount } = await loadFixture(deployLenderManagerFixture);
 
             const tx = await lenderManager.createLendingPosition(unlockTime, 10, {value: amount});
             await tx.wait();
 
             let key = await lenderManager.loanKeys(0);
 
-            await expect(lenderManager.createBorrow(key, ethers.utils.parseEther("0"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
+            await expect(lenderManager.connect(otherAccount).createBorrow(key, ethers.utils.parseEther("0"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
         })
 
         it("Should fail if duration is passed for the given loan", async function () {
-            const { lenderManager, MINER_ADDRESS } = await loadFixture(deployLenderManagerFixture);
+            const { lenderManager, MINER_ADDRESS, otherAccount } = await loadFixture(deployLenderManagerFixture);
 
             const tx = await lenderManager.createLendingPosition(unlockTime, 10, {value: amount});
             await tx.wait();
@@ -124,10 +124,9 @@ describe("Lender Manager Contract", function () {
             // time travelling to after the unlock time
             await time.increaseTo(unlockTime + 1);
 
-            await expect(lenderManager.createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWith("Lending position not available");
+            await expect(lenderManager.connect(otherAccount).createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWith("Lending position not available");
         })
 
-        // Should fail but passes
         it("Should fail if the lender is calling the borrow function", async function () {
             const { lenderManager, MINER_ADDRESS, owner } = await loadFixture(deployLenderManagerFixture);
 
@@ -136,17 +135,7 @@ describe("Lender Manager Contract", function () {
 
             let key = await lenderManager.loanKeys(0);
 
-            await lenderManager.createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS));
-
-            // check params updated
-            let lenderPosition = await lenderManager.positions(key);
-            expect(lenderPosition.availableAmount).to.equal(ethers.utils.parseEther("0.001"));
-
-            let lendingOrders = await lenderManager.ordersForLending(key,0);
-            // This is not correct, the lender should not be able to borrow from themselves
-            expect(lendingOrders.borrower).to.equal(owner.address);
-
-            expect(lendingOrders.loanAmount).to.equal(ethers.utils.parseEther("0.001"));
+            await expect(lenderManager.createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
         })
 
         it("Should pass for the correct params passed to the function", async function () {
