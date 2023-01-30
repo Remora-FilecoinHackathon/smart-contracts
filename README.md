@@ -39,5 +39,5 @@ npx hardhat test --network hardhat
 
 ## TODO
 - ~~Finish implementing the Escrow contract~~
-- Check why Zondax API does not work
+- ~~Check why Zondax API does not work~~ Test all API interactions
 - Write automated tests inside "test" directory (https://hardhat.org/tutorial/testing-contracts)
