@@ -97,7 +97,6 @@ contract Escrow is IEscrow {
     function repay() external {
         require(block.timestamp >= nextWithdraw(), "Too early");
         require((loanAmount >= loanPaidAmount), "loan repaid");
-        lastWithdraw = block.timestamp;
         if (address(this).balance >= rateAmount) {
             // transfer $fil to lender
             submit(lender, rateAmount, "");
@@ -107,6 +106,7 @@ contract Escrow is IEscrow {
             canTerminate = true;
             emit FailedPaidRate(block.timestamp);
         }
+        lastWithdraw = block.timestamp;
     }
 
     function withdrawBeforLoanStarts() external {
