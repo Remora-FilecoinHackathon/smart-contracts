@@ -23,7 +23,7 @@ interface ILenderManager {
 
     event CheckReputation(
         uint256 requestId, 
-        bytes minerActor
+        string minerActor
     );
 
     struct BorrowerOrders {

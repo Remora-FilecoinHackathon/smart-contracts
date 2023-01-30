@@ -26,6 +26,7 @@ contract LenderManager is ILenderManager {
     uint256 constant MINER_REPUTATION_BAD = 1;
     uint256 constant MINER_REPUTATION_GOOD = 2;
     uint256 constant REPAY_LOAN_INTERVAL = 30 days;
+    bytes private constant ALPHABET = "0123456789abcdef";
 
     modifier onlyOracle() {
         require(msg.sender == oracle);
@@ -150,7 +151,24 @@ contract LenderManager is ILenderManager {
         uint256 id = currentId;
         reputationRequest[id] = minerActorAddress;
         incrementId();
-        emit CheckReputation(id, minerActorAddress);
+        string memory minerActor = toString(minerActorAddress);
+        emit CheckReputation(id, minerActor);
+    }
+
+    function toString(bytes memory data) internal pure returns (string memory) {
+        return string(abi.encodePacked(toStringRaw(data)));
+    }
+
+    function toStringRaw(bytes memory data)
+        internal
+        pure
+        returns (bytes memory str)
+    {
+        str = new bytes(data.length * 2);
+        for (uint256 i = 0; i < data.length; i++) {
+            str[i * 2] = ALPHABET[uint256(uint8(data[i] >> 4))];
+            str[i * 2 + 1] = ALPHABET[uint256(uint8(data[i] & 0x0f))];
+        }
     }
 
     function receiveReputationScore(uint256 requestId, uint256 response)
