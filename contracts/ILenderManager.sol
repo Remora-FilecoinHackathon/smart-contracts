@@ -2,9 +2,6 @@
 pragma solidity ^0.8.17;
 
 interface ILenderManager {
-
-
-
     error Empty_Amount();
     error Loan_Period_Excedeed();
     error InterestRate_Too_High(uint256 max);
