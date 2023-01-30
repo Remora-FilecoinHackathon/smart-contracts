@@ -41,12 +41,14 @@ contract LenderManager is ILenderManager {
         public
         payable
     {
-        require(msg.value > 0, "send some FIL to create a lending position");
-        require(
-            duration > block.timestamp,
-            "duration must be greater than current timestamp"
-        );
-        // TODO do we want to add a limit to the loanInterestRate?
+        if (msg.value <= 0)
+            revert Empty_Amount();
+        if (block.timestamp >= duration)
+            revert Loan_Period_Excedeed();
+        if (loanInterestRate >= 10000)
+            revert InterestRate_Too_High(10000);
+            
+        // generate "random" key used to manage Lending positions    
         uint256 key = uint256(
             keccak256(
                 abi.encodePacked(
@@ -77,21 +79,18 @@ contract LenderManager is ILenderManager {
         uint256 amount,
         bytes memory minerActorAddress
     ) public {
-        require(
-            positions[loanKey].lender != address(0),
-            "positions[loanKey].lender != address(0)"
-        );
-        require(
-            msg.sender != positions[loanKey].lender,
-            "msg.sender != lender"
-        );
-        // TODO delete this comment require(isControllingAddress(minerActorAddress));
-        require(
-            amount <= positions[loanKey].availableAmount &&
-                block.timestamp < positions[loanKey].endTimestamp,
-            "Lending position not available"
-        );
-        //TODO delete this comment require(reputationResponse[minerActorAddress] == MINER_REPUATION_GOOD, "bad reputation");
+        
+        if (positions[loanKey].lender == address(0))
+            revert Empty_Lender();
+        if (msg.sender == positions[loanKey].lender)
+            revert Impossible_Borrower(msg.sender);
+        if (amount > positions[loanKey].availableAmount && block.timestamp > positions[loanKey].endTimestamp)
+            revert Loan_No_More_Available();
+        if(reputationResponse[minerActorAddress] != MINER_REPUTATION_GOOD)
+            revert Miner_Bad_Reputation();
+        if(!isControllingAddress(minerActorAddress))
+            revert No_Borrower_Permissions();
+
         (uint256 rate, uint256 amountToRepay) = calculateInterest(
             amount,
             positions[loanKey].interestRate
@@ -121,7 +120,6 @@ contract LenderManager is ILenderManager {
                 address(escrow)
             )
         );
-
         emit BorrowOrder(
             address(escrow),
             amount,
@@ -132,6 +130,24 @@ contract LenderManager is ILenderManager {
             loanKey,
             minerActorAddress
         );
+    }
+
+    function checkReputation(bytes memory minerActorAddress) public {
+        uint256 id = currentId;
+        reputationRequest[id] = minerActorAddress;
+        incrementId();
+        string memory minerActor = toString(minerActorAddress);
+        emit CheckReputation(id, minerActor);
+    }
+
+    function receiveReputationScore(uint256 requestId, uint256 response)
+        external
+        onlyOracle
+    {
+        if(response != MINER_REPUTATION_GOOD || response != MINER_REPUTATION_BAD)
+            revert Miner_Reputation_Value();
+        bytes memory miner = reputationRequest[requestId];
+        reputationResponse[miner] = response;
     }
 
     function isControllingAddress(bytes memory minerActorAddress)
@@ -147,50 +163,13 @@ contract LenderManager is ILenderManager {
                 .is_controlling;
     }
 
-    function checkReputation(bytes memory minerActorAddress) public {
-        uint256 id = currentId;
-        reputationRequest[id] = minerActorAddress;
-        incrementId();
-        string memory minerActor = toString(minerActorAddress);
-        emit CheckReputation(id, minerActor);
-    }
-
-    function toString(bytes memory data) internal pure returns (string memory) {
-        return string(abi.encodePacked(toStringRaw(data)));
-    }
-
-    function toStringRaw(bytes memory data)
-        internal
-        pure
-        returns (bytes memory str)
-    {
-        str = new bytes(data.length * 2);
-        for (uint256 i = 0; i < data.length; i++) {
-            str[i * 2] = ALPHABET[uint256(uint8(data[i] >> 4))];
-            str[i * 2 + 1] = ALPHABET[uint256(uint8(data[i] & 0x0f))];
-        }
-    }
-
-    function receiveReputationScore(uint256 requestId, uint256 response)
-        external
-        onlyOracle
-    {
-        require(
-            response == MINER_REPUTATION_GOOD ||
-                response == MINER_REPUTATION_BAD,
-            "bad value"
-        );
-        bytes memory miner = reputationRequest[requestId];
-        reputationResponse[miner] = response;
-    }
-
     function calculateInterest(uint256 amount, uint256 bps)
         public
         pure
         returns (uint256, uint256)
     {
         uint256 computedAmount = amount * bps;
-        require(computedAmount >= 10_000);
+        require(computedAmount >= 10_000, "wrong math");
         (computedAmount / 10_000);
         // using 833 bps returns the monthly rate to pay
         return (
@@ -207,11 +186,27 @@ contract LenderManager is ILenderManager {
         pure
         returns (uint256)
     {
-        require((amount * bps) >= 10_000);
+        require((amount * bps) >= 10_000, "wrong math");
         return ((amount * bps) / 10_000);
     }
 
     function incrementId() private returns (uint256) {
         return currentId += 1;
+    }
+
+    function toString(bytes memory data) internal pure returns (string memory) {
+        return string(abi.encodePacked(toStringRaw(data)));
+    }
+
+    function toStringRaw(bytes memory data)
+        internal
+        pure
+        returns (bytes memory str)
+    {
+        str = new bytes(data.length * 2);
+        for (uint256 i = 0; i < data.length; i++) {
+            str[i * 2] = ALPHABET[uint256(uint8(data[i] >> 4))];
+            str[i * 2 + 1] = ALPHABET[uint256(uint8(data[i] & 0x0f))];
+        }
     }
 }
