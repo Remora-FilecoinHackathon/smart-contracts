@@ -8,11 +8,12 @@ cd smart-contracts
 npm i
 touch .env
 ```
-Insert your Private Key inside the .env file, inside a variable called PRIVATE_KEY
+Insert your private keys inside the .env file, in a variable called PRIVATE_KEY_LENDER and a variable called PRIVATE_KEY_BORROWER (must be 2 different private keys)
 (See here for tutorial on how to export private key from metamask: https://metamask.zendesk.com/hc/en-us/articles/360015289632-How-to-export-an-account-s-private-key)
 
 ```properties
-PRIVATE_KEY=<private_key_exported>
+PRIVATE_KEY_LENDER=<private_key_exported>
+PRIVATE_KEY_BORROWER=<private_key_exported>
 ```
 
 Fund the address related with the private key here: https://hyperspace.yoga/#faucet
