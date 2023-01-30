@@ -5,7 +5,6 @@ import "@zondax/filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import "@zondax/filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
 import "@zondax/filecoin-solidity/contracts/v0.8/utils/Actor.sol";
 import "@zondax/filecoin-solidity/contracts/v0.8/utils/Misc.sol";
-import "@zondax/filecoin-solidity/contracts/v0.8/SendAPI.sol";
 import "./ILenderManager.sol";
 import "./Escrow.sol";
 
@@ -26,7 +25,7 @@ contract LenderManager is ILenderManager {
     uint256 constant MINER_REPUTATION_DEFAULT = 0;
     uint256 constant MINER_REPUTATION_BAD = 1;
     uint256 constant MINER_REPUTATION_GOOD = 2;
-    uint256 constant repayLoanInterval = 2592000;
+    uint256 constant REPAY_LOAN_INTERVAL = 30 days;
 
     modifier onlyOracle() {
         require(msg.sender == oracle);
@@ -46,6 +45,7 @@ contract LenderManager is ILenderManager {
             duration > block.timestamp,
             "duration must be greater than current timestamp"
         );
+        // TODO do we want to add a limit to the loanInterestRate?
         uint256 key = uint256(
             keccak256(
                 abi.encodePacked(
@@ -76,9 +76,15 @@ contract LenderManager is ILenderManager {
         uint256 amount,
         bytes memory minerActorAddress
     ) public {
-        require(positions[loanKey].lender != address(0));
-        require(msg.sender != positions[loanKey].lender);
-        // TODO delete this comment require(isControllingAddress(msg.sender));
+        require(
+            positions[loanKey].lender != address(0),
+            "positions[loanKey].lender != address(0)"
+        );
+        require(
+            msg.sender != positions[loanKey].lender,
+            "msg.sender != lender"
+        );
+        // TODO delete this comment require(isControllingAddress(minerActorAddress));
         require(
             amount <= positions[loanKey].availableAmount &&
                 block.timestamp < positions[loanKey].endTimestamp,
@@ -97,13 +103,13 @@ contract LenderManager is ILenderManager {
             minerActorAddress,
             amountToRepay,
             rate,
-            repayLoanInterval,
+            REPAY_LOAN_INTERVAL,
             positions[loanKey].endTimestamp
         );
-        escrowContracts[loanKey].push(payable(address(escrow)));
         (bool sent, ) = address(escrow).call{value: amount}("");
         require(sent, "Failed send to escrow");
         positions[loanKey].availableAmount -= amount;
+        escrowContracts[loanKey].push(payable(address(escrow)));
         ordersForLending[loanKey].push(
             BorrowerOrders(
                 msg.sender,
@@ -114,6 +120,7 @@ contract LenderManager is ILenderManager {
                 address(escrow)
             )
         );
+
         emit BorrowOrder(
             address(escrow),
             amount,
@@ -125,7 +132,7 @@ contract LenderManager is ILenderManager {
             minerActorAddress
         );
     }
-    
+
     function isControllingAddress(bytes memory minerActorAddress)
         public
         returns (bool)
@@ -168,7 +175,13 @@ contract LenderManager is ILenderManager {
         require(computedAmount >= 10_000);
         (computedAmount / 10_000);
         // using 833 bps returns the monthly rate to pay
-        return (calculatePeriodicaInterest(((computedAmount + amount) / 10_000), 833), ((computedAmount + amount)));
+        return (
+            calculatePeriodicaInterest(
+                ((computedAmount + amount) / 10_000),
+                833
+            ),
+            ((computedAmount + amount))
+        );
     }
 
     function calculatePeriodicaInterest(uint256 amount, uint256 bps)

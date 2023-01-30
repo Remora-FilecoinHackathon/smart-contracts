@@ -8,6 +8,7 @@
     "@zondax/filecoin-signing-tools": "^2.3.0",
     "@zondax/filecoin-solidity": "*",
     "axios": "^1.2.4",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "filecoin.js": "*"
   }
 }

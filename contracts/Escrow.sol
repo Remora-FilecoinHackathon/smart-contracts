@@ -39,11 +39,9 @@ contract Escrow is IEscrow {
         rateAmount = _rateAmount;
         withdrawInterval = _withdrawInterval;
         end = _end;
-        closeLoanParam.amount_requested = abi.encodePacked(address(this).balance);
-    }
-
-    receive() external payable {
-        emit Received(msg.sender, msg.value);
+        closeLoanParam.amount_requested = abi.encodePacked(
+            address(this).balance
+        );
     }
 
     function startLoan() external {
@@ -61,21 +59,26 @@ contract Escrow is IEscrow {
         MinerAPI.changeBeneficiary(minerActor, params);
 
         // check on Owner
-        MinerTypes.GetOwnerReturn memory getOwnerReturnValue = MinerAPI.getOwner(minerActor);
-        address checkOwner = abi.decode(getOwnerReturnValue.owner,(address));
+        MinerTypes.GetOwnerReturn memory getOwnerReturnValue = MinerAPI
+            .getOwner(minerActor);
+        address checkOwner = abi.decode(getOwnerReturnValue.owner, (address));
         require(checkOwner == address(this));
         // check on Beneficiary
-        MinerTypes.GetBeneficiaryReturn memory getBeneficiaryReturnValue = MinerAPI.getBeneficiary(minerActor);
-        address checkBeneficiary = abi.decode(getBeneficiaryReturnValue.active.beneficiary, (address));
+        MinerTypes.GetBeneficiaryReturn
+            memory getBeneficiaryReturnValue = MinerAPI.getBeneficiary(
+                minerActor
+            );
+        address checkBeneficiary = abi.decode(
+            getBeneficiaryReturnValue.active.beneficiary,
+            (address)
+        );
         require(checkBeneficiary == address(this));
 
         started = true;
     }
 
     function transferToMinerActor(uint256 amount) external {
-        require(
-            msg.sender == borrower 
-        );
+        require(msg.sender == borrower);
         require(amount <= address(this).balance);
         SendAPI.send(minerActor, amount);
     }
@@ -135,7 +138,6 @@ contract Escrow is IEscrow {
         selfdestruct(lenderAddress);
     }
 
-
     function submit(
         address subject,
         uint256 value,
@@ -148,5 +150,9 @@ contract Escrow is IEscrow {
                 revert(add(returnData, 0x20), mload(returnData))
             }
         }
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
     }
 }
