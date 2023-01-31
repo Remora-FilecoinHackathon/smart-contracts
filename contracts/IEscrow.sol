@@ -13,6 +13,7 @@ interface IEscrow {
     error Not_The_Lender(address);
     error Already_Started();
     error Loan_Not_Expired(uint256);
+    error Loan_Not_Started();
     
     event PaidRate(uint256 time, uint256 amount, uint256 paidAmount);
     event FailedPaidRate(uint256 time);
