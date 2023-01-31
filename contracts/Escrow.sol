@@ -106,6 +106,9 @@ contract Escrow is IEscrow {
     }
 
     function repay() external {
+        if (!started)
+            revert Loan_Not_Started();
+            
         if(nextWithdraw() > block.timestamp)
             revert Too_Early(nextWithdraw());
 
