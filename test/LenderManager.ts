@@ -3,6 +3,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import axios from "axios";
 import { ethers } from "hardhat";
 import { addressAsBytes } from "../scripts/utils/parseAddress";
+import { LenderManager } from "../typechain-types/escrow";
 
 describe("Lender Manager Contract", function () {
 
@@ -54,13 +55,19 @@ describe("Lender Manager Contract", function () {
         it("Should fail for zero value sent to the function", async function () {
             const { lenderManager } = await loadFixture(deployLenderManagerFixture);
 
-            await expect(lenderManager.createLendingPosition(unlockTime, 10)).to.be.revertedWith('send some FIL to create a lending position');
+            await expect(lenderManager.createLendingPosition(unlockTime, 10)).to.be.revertedWithCustomError(lenderManager ,"Empty_Amount");
         })
 
         it("Should fail for invalid duration sent to the function", async function () {
             const { lenderManager } = await loadFixture(deployLenderManagerFixture);
 
-            await expect(lenderManager.createLendingPosition(currentTimestampInSeconds - 1, 10, {value: amount})).to.be.revertedWith('duration must be greater than current timestamp');
+            await expect(lenderManager.createLendingPosition(currentTimestampInSeconds - 1, 10, {value: amount})).to.be.revertedWithCustomError(lenderManager ,"Loan_Period_Excedeed");
+        })
+
+        it("Should fail for invalid interest rate sent to the function", async function () {
+            const { lenderManager } = await loadFixture(deployLenderManagerFixture);
+
+            await expect(lenderManager.createLendingPosition(unlockTime, 1e5, {value: 1})).to.be.revertedWithCustomError(lenderManager ,"InterestRate_Too_High");
         })
 
         it("Should pass for the correct params", async function () {
@@ -88,7 +95,7 @@ describe("Lender Manager Contract", function () {
             const tx = await lenderManager.createLendingPosition(unlockTime, 10, {value: amount});
             await tx.wait();
 
-            await expect(lenderManager.connect(otherAccount).createBorrow(0, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
+            await expect(lenderManager.connect(otherAccount).createBorrow(0, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWithCustomError(lenderManager, "Empty_Lender");
         })
 
         it("Should fail for an invalid amount sent to the function", async function () {
@@ -99,7 +106,7 @@ describe("Lender Manager Contract", function () {
 
             let key = await lenderManager.loanKeys(0);
 
-            await expect(lenderManager.connect(otherAccount).createBorrow(key, ethers.utils.parseEther("0.003"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWith("Lending position not available");
+            await expect(lenderManager.connect(otherAccount).createBorrow(key, amount.add(10), addressAsBytes(MINER_ADDRESS))).to.be.revertedWithCustomError(lenderManager, "Loan_No_More_Available");
         })
 
         it("Should fail for zero amount sent to the function", async function () {
@@ -124,7 +131,7 @@ describe("Lender Manager Contract", function () {
             // time travelling to after the unlock time
             await time.increaseTo(unlockTime + 1);
 
-            await expect(lenderManager.connect(otherAccount).createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWith("Lending position not available");
+            await expect(lenderManager.connect(otherAccount).createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWithCustomError(lenderManager, "Loan_No_More_Available");
         })
 
         it("Should fail if the lender is calling the borrow function", async function () {
@@ -135,7 +142,7 @@ describe("Lender Manager Contract", function () {
 
             let key = await lenderManager.loanKeys(0);
 
-            await expect(lenderManager.createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.reverted;
+            await expect(lenderManager.createBorrow(key, ethers.utils.parseEther("0.001"), addressAsBytes(MINER_ADDRESS))).to.be.revertedWithCustomError(lenderManager, "Impossible_Borrower");
         })
 
         it("Should pass for the correct params passed to the function", async function () {
@@ -181,7 +188,7 @@ describe("Lender Manager Contract", function () {
             const { lenderManager, MINER_ADDRESS } = await loadFixture(deployLenderManagerFixture);
 
             const id = await lenderManager.currentId();
-            await expect(lenderManager.checkReputation(addressAsBytes(MINER_ADDRESS))).to.emit(lenderManager,'CheckReputation').withArgs(id, addressAsBytes(MINER_ADDRESS));
+            await expect(lenderManager.checkReputation(addressAsBytes(MINER_ADDRESS))).to.emit(lenderManager,'CheckReputation').withArgs(id, addressAsBytes(MINER_ADDRESS).toString());
 
             const reputation = await lenderManager.reputationRequest(id);
             // expect(reputation).to.equal(addressAsBytes(MINER_ADDRESS));
@@ -200,10 +207,14 @@ describe("Lender Manager Contract", function () {
         it("Should pass for correct params passed to the function", async function () {
             const { lenderManager } = await loadFixture(deployLenderManagerFixture);
 
-            const { rate, amountToPay }  = await lenderManager.calculateInterest(amount,883);
+            const Interest  = await lenderManager.calculateInterest(100000,10);
+            const calculatedInterest = 100000 + 100000 * 0.1;
+            console.log(calculatedInterest);
 
-            console.log(rate);
-            console.log(amountToPay);
+            // expect(Interest[1]).to.equal(calculatedInterest);
+
+            console.log(Interest[0]);
+            console.log(Interest[1]);
         })
     })
 })
