@@ -27,15 +27,19 @@ function getMinerAddress(jsonData) {
 }
 
 
-async function main() {
+async function main(address) {
     try {
-        var minerData = await getData('https://api.filrep.io/api/v1/miners', '?sortBy=score&limit=3');
+        var minerData = await getData('https://api.filrep.io/api/v1/miners', `?search=${address}`);
+        // var minerData = await getData('https://api.filrep.io/api/v1/miners', '?limit=10&sortBy=noPenalties');
         minerData = JSON.parse(minerData)   
         var reputableMiners = getMinerAddress(minerData)
+        console.log("ALL DATA");
+        console.log(minerData);
+        console.log("MINER ADDRESS");
         console.log(reputableMiners);
         
     } catch (error) {
         console.log(error);
     }
 }
-main();
+main('f066104');

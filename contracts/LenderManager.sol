@@ -132,11 +132,11 @@ contract LenderManager is ILenderManager {
         );
     }
 
-    function checkReputation(bytes memory minerActorAddress) public {
+    function checkReputation(string memory minerActorAddress) public {
         uint256 id = currentId;
-        reputationRequest[id] = minerActorAddress;
+        reputationRequest[id] = bytes(minerActorAddress);
         incrementId();
-        string memory minerActor = toString(minerActorAddress);
+        string memory minerActor = minerActorAddress;
         emit CheckReputation(id, minerActor);
     }
 
