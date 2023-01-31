@@ -170,14 +170,14 @@ contract LenderManager is ILenderManager {
     {
         uint256 computedAmount = amount * bps;
         require(computedAmount >= 10_000, "wrong math");
-        (computedAmount / 10_000);
+        uint256 computed = (computedAmount / 10_000);
         // using 833 bps returns the monthly rate to pay
         return (
             calculatePeriodicaInterest(
-                ((computedAmount + amount) / 10_000),
+                ((computedAmount + amount) / 10_00),
                 833
             ),
-            ((computedAmount + amount))
+            ((computed + amount))
         );
     }
 
