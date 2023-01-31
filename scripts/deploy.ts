@@ -61,7 +61,6 @@ async function main() {
   console.log("createLendingPosition finished executing.");
 
   var loanKey = await lenderManager.loanKeys(0);
-  console.log(await lenderManager.positions(loanKey));
 
   var escrow = "";
 
