@@ -39,15 +39,14 @@ contract Escrow is IEscrow {
         rateAmount = _rateAmount;
         withdrawInterval = _withdrawInterval;
         end = _end;
-        closeLoanParam.amount_requested = abi.encodePacked(address(this).balance);
-    }
-
-    receive() external payable {
-        emit Received(msg.sender, msg.value);
+        closeLoanParam.amount_requested = abi.encodePacked(
+            address(this).balance
+        );
     }
 
     function startLoan() external {
-        require(!started);
+        if (started)
+            revert Loan_Already_Started();
         // set this contract as the new Owner of the Miner Actor
         MinerAPI.changeOwnerAddress(
             minerActor,
@@ -61,29 +60,44 @@ contract Escrow is IEscrow {
         MinerAPI.changeBeneficiary(minerActor, params);
 
         // check on Owner
-        MinerTypes.GetOwnerReturn memory getOwnerReturnValue = MinerAPI.getOwner(minerActor);
-        address checkOwner = abi.decode(getOwnerReturnValue.owner,(address));
-        require(checkOwner == address(this));
+        MinerTypes.GetOwnerReturn memory getOwnerReturnValue = MinerAPI
+            .getOwner(minerActor);
+        address checkOwner = abi.decode(
+            getOwnerReturnValue.owner, 
+            (address)
+        );
+        if (checkOwner != address(this))
+            revert Wrong_Owner();
         // check on Beneficiary
-        MinerTypes.GetBeneficiaryReturn memory getBeneficiaryReturnValue = MinerAPI.getBeneficiary(minerActor);
-        address checkBeneficiary = abi.decode(getBeneficiaryReturnValue.active.beneficiary, (address));
-        require(checkBeneficiary == address(this));
+        MinerTypes.GetBeneficiaryReturn
+            memory getBeneficiaryReturnValue = MinerAPI.getBeneficiary(
+                minerActor
+            );
+        address checkBeneficiary = abi.decode(
+            getBeneficiaryReturnValue.active.beneficiary,
+            (address)
+        );
+        if (checkBeneficiary != address(this))
+            revert Wrong_Beneficiary();
 
         started = true;
     }
 
     function transferToMinerActor(uint256 amount) external {
-        require(
-            msg.sender == borrower 
-        );
-        require(amount <= address(this).balance);
+        if(msg.sender != borrower)
+            revert Not_The_Borrower(borrower);
+        if(address(this).balance <= amount)
+            revert Not_Enough_Balance(address(this).balance);
+
         SendAPI.send(minerActor, amount);
     }
 
     function transferFromMinerActor(
         MinerTypes.WithdrawBalanceParams memory balanceParams
     ) external returns (MinerTypes.WithdrawBalanceReturn memory) {
-        require(msg.sender == borrower || msg.sender == lender);
+        if(msg.sender != borrower || msg.sender != lender )
+            revert Not_The_Borrower_Or_Lender(borrower, lender);
+
         return MinerAPI.withdrawBalance(minerActor, balanceParams);
     }
 
@@ -92,9 +106,12 @@ contract Escrow is IEscrow {
     }
 
     function repay() external {
-        require(block.timestamp >= nextWithdraw(), "Too early");
-        require((loanAmount >= loanPaidAmount), "loan repaid");
-        lastWithdraw = block.timestamp;
+        if(nextWithdraw() > block.timestamp)
+            revert Too_Early(nextWithdraw());
+
+        if(loanPaidAmount >= loanAmount)
+            revert Loan_Already_Repaid(loanPaidAmount);
+
         if (address(this).balance >= rateAmount) {
             // transfer $fil to lender
             submit(lender, rateAmount, "");
@@ -104,11 +121,15 @@ contract Escrow is IEscrow {
             canTerminate = true;
             emit FailedPaidRate(block.timestamp);
         }
+        lastWithdraw = block.timestamp;
     }
 
     function withdrawBeforLoanStarts() external {
-        require(msg.sender == lender);
-        require(!started);
+        if(msg.sender != lender)
+            revert Not_The_Lender(lender);
+        if(started)
+            revert Already_Started();
+
         emit ClosedLoan(block.timestamp, address(this).balance, 0);
         // selfdescruct and send $FIL back to the lender
         address payable lenderAddress = payable(address(lender));
@@ -116,7 +137,8 @@ contract Escrow is IEscrow {
     }
 
     function closeLoan() external {
-        require(canTerminate || block.timestamp >= end);
+        if(!canTerminate || end > block.timestamp)
+            revert Loan_Not_Expired(end);
         MinerAPI.withdrawBalance(minerActor, closeLoanParam);
         // change the owner wallet setting the borrower as the new owner
         MinerAPI.changeOwnerAddress(minerActor, abi.encodePacked(borrower));
@@ -135,7 +157,6 @@ contract Escrow is IEscrow {
         selfdestruct(lenderAddress);
     }
 
-
     function submit(
         address subject,
         uint256 value,
@@ -148,5 +169,9 @@ contract Escrow is IEscrow {
                 revert(add(returnData, 0x20), mload(returnData))
             }
         }
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
     }
 }

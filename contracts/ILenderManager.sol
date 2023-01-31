@@ -2,6 +2,16 @@
 pragma solidity ^0.8.17;
 
 interface ILenderManager {
+    error Empty_Amount();
+    error Loan_Period_Excedeed();
+    error InterestRate_Too_High(uint256 max);
+    error Empty_Lender();
+    error Impossible_Borrower(address);
+    error Loan_No_More_Available();
+    error Miner_Reputation_Value();
+    error Miner_Bad_Reputation();
+    error No_Borrower_Permissions();
+
     event LenderPosition(
         address indexed lender,
         uint256 amount,
@@ -23,7 +33,7 @@ interface ILenderManager {
 
     event CheckReputation(
         uint256 requestId, 
-        bytes minerActor
+        string minerActor
     );
 
     struct BorrowerOrders {
