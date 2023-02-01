@@ -142,10 +142,7 @@ describe("Escrow Contract", function () {
             var nextWithdraw = await escrowContract.nextWithdraw();
             console.log(nextWithdraw);
 
-            await escrowContract.repay();
-
-            nextWithdraw = await escrowContract.nextWithdraw();
-            console.log(nextWithdraw);
+            await expect(escrowContract.repay()).to.be.revertedWithCustomError(escrowContract, "Loan_Not_Started");
         })
     })
 
