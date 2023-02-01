@@ -48,7 +48,7 @@ contract LenderManager is ILenderManager {
         if (loanInterestRate >= 10000)
             revert InterestRate_Too_High(10000);
             
-        // generate "random" key used to manage Lending positions    
+        // generate pseudo-random key used to manage Lending positions    
         uint256 key = uint256(
             keccak256(
                 abi.encodePacked(
