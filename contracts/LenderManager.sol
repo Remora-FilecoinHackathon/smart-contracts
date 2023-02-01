@@ -84,7 +84,7 @@ contract LenderManager is ILenderManager {
             revert Empty_Lender();
         if (msg.sender == positions[loanKey].lender)
             revert Impossible_Borrower(msg.sender);
-        if (amount > positions[loanKey].availableAmount && block.timestamp > positions[loanKey].endTimestamp)
+        if (amount > positions[loanKey].availableAmount || block.timestamp > positions[loanKey].endTimestamp)
             revert Loan_No_More_Available();
         if(reputationResponse[minerActorAddress] != MINER_REPUTATION_GOOD)
             revert Miner_Bad_Reputation();

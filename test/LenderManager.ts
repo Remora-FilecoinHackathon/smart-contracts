@@ -207,14 +207,15 @@ describe("Lender Manager Contract", function () {
         it("Should pass for correct params passed to the function", async function () {
             const { lenderManager } = await loadFixture(deployLenderManagerFixture);
 
-            const Interest  = await lenderManager.calculateInterest(100000,10);
-            const calculatedInterest = 100000 + 100000 * 0.1;
-            console.log(calculatedInterest);
+            const amount = 100000;
+            const bps = 1000; // 1000 => 10%, 10 * 100
 
-            // expect(Interest[1]).to.equal(calculatedInterest);
+            const Interest  = await lenderManager.calculateInterest(100000,1000);
+            const calculatedInterest = amount + amount * bps/10000;
+
+            expect(Interest[1]).to.equal(calculatedInterest);
 
             console.log(Interest[0]);
-            console.log(Interest[1]);
         })
     })
 })
