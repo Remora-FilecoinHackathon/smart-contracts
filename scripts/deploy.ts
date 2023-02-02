@@ -12,7 +12,7 @@ dotenv.config();
 const ENDPOINT_ADDRESS = "https://api.hyperspace.node.glif.io/rpc/v1";
 const LOTUS_HTTP_RPC_ENDPOINT = "https://100.20.82.125:1234";
 
-const ORACLE_ADDRESS = "0xbd6E4e826D26A8C984C1baF057D6E62cC245645D";
+const ORACLE_ADDRESS = "0xc2b60CfFe4f20b2046C951CDEB459aF897cff571";
 const MINER_ADDRESS =
   "t3wj7cikpzptshfuwqleehoytar2wcvom42q6io7lopbl2yp2kb2yh3ymxovsd5ccrgm36ckeibzjl3s27pzuq";
 
