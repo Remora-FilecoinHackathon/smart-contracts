@@ -1,7 +1,5 @@
-const { boolean } = require("hardhat/internal/core/params/argumentTypes");
 const axios = require("axios");
 const ethers = require("hardhat").ethers;
-const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 const ENDPOINT_ADDRESS = "https://api.hyperspace.node.glif.io/rpc/v1";
 
@@ -16,31 +14,19 @@ async function callRpc(method, params) {
   }
 
 
-function getData(apiUrl, params) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', apiUrl + params, true);
-        xhr.onload = () => {
-            if (xhr.status === 200) {
-                resolve(xhr.responseText);
-            } else {
-                reject(xhr.statusText);
-            }
-        };
-        xhr.onerror = () => reject(xhr.statusText);
-        xhr.send();
-    });
+async function getData(apiUrl, params) {
+    try {
+        const response = await axios.get(apiUrl + params);
+        return response.data['miners'];
+    } catch (error) {
+        return error.message;
+    }
 }
 
-function determineIfMinerIsReputable(jsonData) {
-    var jsonData = jsonData['miners'];
+async function determineIfMinerIsReputable(jsonData) {
     var minerIsReputable = false;
     var minerReputation = jsonData[0].score;
     var minerReachable = jsonData[0].reachability;
-    console.log('REPUTATION SCORE');
-    console.log(minerReputation);
-    console.log('REACHABLE');
-    console.log(minerReachable);
 
     if (minerReputation > 95 && minerReachable === 'reachable') {
         minerIsReputable = true;
@@ -53,23 +39,13 @@ function determineIfMinerIsReputable(jsonData) {
 
 
 async function writeReputation(isMinerReputable) {
-    const MINER_ADDRESS =
-      "t3wj7cikpzptshfuwqleehoytar2wcvom42q6io7lopbl2yp2kb2yh3ymxovsd5ccrgm36ckeibzjl3s27pzuq";
-    
-    // set to my own wallet so I can write reputation 
-    const ORACLE_ADDRESS = "0xc2b60CfFe4f20b2046C951CDEB459aF897cff571";
-    
-    // NEW ADDRESS - uses mock contracts 
-    const LENDER_MANAGER_ADDRESS = "0x1a75831c8646fC5c4a6Bf6337c696dE14F0c85b6";
+    const LENDER_MANAGER_ADDRESS = "0x8322e4D514C08e211eF72B67d51d2c8E80154CC0";
   
     var priorityFee = await callRpc("eth_maxPriorityFeePerGas");
     const LenderManager = await ethers.getContractFactory("LenderManager");
     const lenderManager = LenderManager.attach(LENDER_MANAGER_ADDRESS);
     const id = await lenderManager.currentId()
-    const oracle = await lenderManager.oracle()
-    console.log("CURRENT ID");
-    console.log(id);
-    console.log(oracle);
+
     // receiveReputation score takes 1 for bad, 2 for good
     if (isMinerReputable === false) {
         await lenderManager.receiveReputationScore(id, 1, {
@@ -88,11 +64,7 @@ async function writeReputation(isMinerReputable) {
 async function main(address) {
     try {
         var minerData = await getData('https://api.filrep.io/api/v1/miners', `?search=${address}`);
-        // var minerData = await getData('https://api.filrep.io/api/v1/miners', '?limit=10&sortBy=noPenalties');
-        minerData = JSON.parse(minerData)   
-        var minerReputable = determineIfMinerIsReputable(minerData);
-        console.log("MINER REPUTABLE?");
-        console.log(minerReputable);
+        var minerReputable = await determineIfMinerIsReputable(minerData);
 
         var txn = await writeReputation(minerReputable);
         console.log(txn);
