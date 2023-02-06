@@ -1,4 +1,4 @@
-# NOTE: We switched to Mock API this repository does not contain updated code. See the [smart-contracts-mock](https://github.com/Remora-FilecoinHackathon/smart-contracts-mock) repository for the updated code.
+# NOTE: This repository does not contain updated code. See the [smart-contracts-mock](https://github.com/Remora-FilecoinHackathon/smart-contracts-mock) repository for the updated code.
 
 # Project Setup
 
